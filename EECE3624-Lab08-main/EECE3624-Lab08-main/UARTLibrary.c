@@ -32,33 +32,67 @@
 // For example,
 //     usart1_init(9600,8,1,0);
 // sets the baudrate to 9600, with 8 data bits, 1 stop bit, and no parity
-void uart_init(long unsigned int baudrate, unsigned char databits, unsigned char stopbits, unsigned char parity) {
-    /* your code here */
-	// set baud rate (via UBRR0 high and low registers)
-    
-	// set databits
-    
-	// set parity
-    
-    // set stopbits
-    
-	// finally, enable receiver and transmitter
-    
+void uart_init(long unsigned int baudrate,
+               unsigned char databits,
+               unsigned char stopbits,
+               unsigned char parity)
+{
+    unsigned int ubrr;
+    unsigned char ucsrc = 0;
+
+    // UBRR value
+    ubrr = (F_OSC / (16UL * baudrate)) - 1;
+
+    UBRR1H = (unsigned char)(ubrr >> 8);
+    UBRR1L = (unsigned char)ubrr;
+
+    // Data bits
+    if(databits == 8)
+    {
+        ucsrc |= (1 << UCSZ11) | (1 << UCSZ10);
+    }
+    else if(databits == 7)
+    {
+        ucsrc |= (1 << UCSZ11);
+    }
+
+    if(stopbits == 2)
+    {
+        ucsrc |= (1 << USBS1);
+    }
+
+    // Parity
+    if(parity == 1)      //odd
+    {
+        ucsrc |= (1 << UPM11) | (1 << UPM10);
+    }
+    else if(parity == 2) //evem
+    {
+        ucsrc |= (1 << UPM11);
+    }
+
+    UCSR1C = ucsrc;
+
+    UCSR1B = (1 << RXEN1) | (1 << TXEN1);
 }
 
-// This function waits for space in the USART transmit buffer. When space
-// is available, the function places an unsigned character value (passed in
-// as the function's only argument) in the buffer and returns. No error
-// checking is performed and the function does not return a value.
-void uart_tx(unsigned char data) {
-    /* your code here */
+void uart_tx(unsigned char data) //transmit one char
+{
+    /* Wait until transmit buffer is empty */
+    while((UCSR1A & (1 << UDRE1)) == 0)
+    {
+    }
 
+    // Send data
+    UDR1 = data;
 }
 
-// This function blocks until a character is received in the USART input
-// buffer. Once a character arrives, it is passed back to the caller as
-// an unsigned character. No error checking is performed.
-unsigned char uart_rx(void) {
-	/* your code here */
-    
+unsigned char uart_rx(void) //receive one char
+{
+    while((UCSR1A & (1 << RXC1)) == 0)
+    {
+    }
+
+    // Return received character
+    return UDR1;
 }
