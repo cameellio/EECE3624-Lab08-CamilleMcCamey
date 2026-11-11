@@ -34,31 +34,40 @@ int main(void)
     unsigned char c;
     unsigned char count = 0;
 
-    // Configure LED0 (PB0) as output
+    // Configure LED0 (PB0) as an output so the board can visibly blink
+    // when data is received. This helps confirm serial activity.
     DDRB |= (1 << PB0);
     PORTB &= ~(1 << PB0);
 
-    // Initialize UART
+    // Initialize the UART for serial communication using the required
+    // settings: 9600 baud, 8 data bits, 1 stop bit, no parity.
     uart_init(BAUDRATE, DATABITS, STOPBITS, PARITY);
 
-    // Display startup message
+    // Show the startup banner on power-up or after an ESC reset.
     startupScreen();
 
     while (1)
     {
+        // Wait for the next serial character from the terminal.
         c = uart_rx();
 
+        // Blink the LED briefly to show that a byte was received.
         PORTB |= (1 << PB0);
         _delay_ms(75);
         PORTB &= ~(1 << PB0);
 
+        // Echo the received character back to the terminal for interactive use.
         uart_tx(c);
 
+        // If Enter was pressed, also send a line feed so the terminal output
+        // appears on the next line correctly.
         if (c == CR)
         {
             uart_tx(LF);
         }
 
+        // ESC acts as a soft reset: redisplay the startup screen and clear the
+        // "end" detection state so the user can start over cleanly.
         if (c == ESC)
         {
             startupScreen();
@@ -66,7 +75,8 @@ int main(void)
             continue;
         }
 
-        // look for end
+        // Track whether the user is typing the sequence "end".
+        // This is a simple state machine: e -> n -> d.
         switch (count)
         {
             case 0:
@@ -95,16 +105,18 @@ int main(void)
                 break;
         }
 
-        // If "end"
+        // Once the sequence "end" has been fully received, print a goodbye
+        // message and halt the program so the RS232 server stops running.
         if (count == 3)
         {
             uart_tx(CR);
             uart_tx(LF);
-
             printString("Bye");
+            uart_tx(CR);
+            uart_tx(LF);
 
             while (1)
-            { //stop
+            { // stop execution after the goodbye message
             }
         }
     }
@@ -134,7 +146,7 @@ void startupScreen(void)
     uart_tx(CR);
     uart_tx(LF);
 
-    printString("Julia Camille McCamey");
+    printString("Camille McCamey");
     uart_tx(CR);
     uart_tx(LF);
 

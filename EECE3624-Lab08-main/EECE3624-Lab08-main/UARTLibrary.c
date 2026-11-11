@@ -66,7 +66,7 @@ void uart_init(long unsigned int baudrate,
     {
         ucsrc |= (1 << UPM11) | (1 << UPM10);
     }
-    else if(parity == 2) //evem
+    else if(parity == 2) //even
     {
         ucsrc |= (1 << UPM11);
     }
